@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 
 namespace FileManager
 {
@@ -7,21 +8,34 @@ namespace FileManager
     {
         static void Main(string[] args)
         {
-            
+            Console.Clear();
+
             // Window Size
             var windowHeight = Console.WindowHeight;
             var windowWidth = Console.WindowWidth;
 
-            var consoleWindow = new ConsoleWindow(heigth: windowHeight - 2, width: windowWidth);
-            Console.Clear();
-            consoleWindow.Print();
-            Console.ReadLine();
+            // var consoleWindow = new ConsoleWindow(heigth: windowHeight - 2, width: windowWidth);
+            // consoleWindow.Print();
+            // Console.ReadLine();
 
             // Listring
 
-            var startedPath = Path.Join(Environment.CurrentDirectory, "..", "..", "..", "..");
+            // var startedPath = Path.Join(Environment.CurrentDirectory, "..", "..", "..", "..");
+            // Listing(startedPath);
 
-            var directoryInfo = new DirectoryInfo(startedPath);
+            var commandManager = new CommandManager();
+
+            while (true)
+            {
+                var str = Console.ReadLine();
+                var (command, arguments) = commandManager.parseStringToCommand(str);
+                commandManager.execCommand(command, arguments);
+            }
+        }
+
+        static void Listing(string path)
+        {
+            var directoryInfo = new DirectoryInfo(path);
 
             foreach (var directory in directoryInfo.EnumerateDirectories())
             {

@@ -1,17 +1,18 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using System.IO;
 
 
 namespace FileManager
 {
     public class FMApplication
     {
-        private string currentPath = Path.Join(Environment.CurrentDirectory, "..", "..", "..", "..");
+        private string currentPath = Path.GetFullPath(Path.Join(Environment.CurrentDirectory, "..", "..", "..", ".."));
 
         public FMApplication()
         {
+            // TODO: Добавить инициализацию этой конфига
         }
 
         public void run()
@@ -40,14 +41,15 @@ namespace FileManager
         {
             switch (command)
             {
+                case "cd":
                 case "ls":
-                    ListDirectoryFile(arguments);
+                    CommandListDirectoryFile(arguments);
                     return;
                 case "cp":
-                    CopyFile(arguments);
+                    CommandCopy(arguments);
                     return;
                 case "rm":
-                    RemoveFile(arguments);
+                    CommandDelete(arguments);
                     return;
                 case "help":
                     Console.WriteLine("Call help command");
@@ -58,7 +60,7 @@ namespace FileManager
             }
         }
 
-        private void ListDirectoryFile(string[] arguments)
+        private void CommandListDirectoryFile(string[] arguments)
         {
             string newPath = arguments[0];
 
@@ -81,8 +83,11 @@ namespace FileManager
                 throw new ArgumentException();
             }
 
+            currentPath = Path.GetFullPath(currentPath);
 
             var directoryInfo = new DirectoryInfo(currentPath);
+
+            Console.WriteLine($"Current path: {currentPath}");
 
             foreach (var directory in directoryInfo.EnumerateDirectories())
             {
@@ -93,54 +98,121 @@ namespace FileManager
             {
                 Console.WriteLine($"/{fileInfo.Name}");
             }
-
-            // Console.WriteLine(Directory.GetDirectories(Directory.GetCurrentDirectory()));
-            // Console.WriteLine(Directory.GetFiles(Directory.GetCurrentDirectory()));
         }
 
-        private void CopyFile(string[] arguments)
+        private void CommandCopy(string[] arguments)
         {
+            // TODO: Добавить обработку ошибок с доступом к файлу
+            // TODO: Добавить обработку ошибок с копированием не существующего файла
             var sourcePathToFile = arguments[0];
             var targetPathToFile = arguments[1];
+            var isCopyDirectory = arguments[2] == "-p";
 
-            if (!string.IsNullOrEmpty(sourcePathToFile))
+            if (string.IsNullOrEmpty(sourcePathToFile))
             {
                 throw new ArgumentNullException();
             }
 
-            if (!string.IsNullOrEmpty(targetPathToFile))
+            if (string.IsNullOrEmpty(targetPathToFile))
             {
                 throw new ArgumentNullException();
             }
 
-            if (!File.Exists(sourcePathToFile))
+            if (isCopyDirectory)
             {
-                throw new AggregateException();
+                CopyDirectory(sourcePathToFile, targetPathToFile);
+                return;
             }
 
-            if (!Path.HasExtension(targetPathToFile))
-            {
-                throw new ArgumentException();
-            }
-
-            File.Copy(sourcePathToFile, targetPathToFile); // Добавить флаг forse для перезаписи
+            CopyFile(sourcePathToFile, targetPathToFile);
         }
 
-        private void RemoveFile(string[] arguments)
+        private void CopyFile(string sourcePathToFile, string targetPathToFile)
         {
+            var fullPathToSourceFile = CombinePathToTargetFile(currentPath, sourcePathToFile);
+
+            if (Directory.Exists(fullPathToSourceFile))
+            {
+                throw new ArgumentException("Это не файл а дерриктория");
+            }
+
+            if (!File.Exists(fullPathToSourceFile))
+            {
+                throw new ArgumentException(); //TODO: Такого файла нету
+            }
+
+            var fullPathToTargetFile = CombinePathToTargetFile(currentPath, targetPathToFile);
+
+            if (!Path.HasExtension(fullPathToTargetFile))
+            {
+                throw new ArgumentException(); //TODO: Файл не имеет расширения
+            }
+
+            File.Copy(fullPathToSourceFile, fullPathToTargetFile); // Добавить флаг forse для перезаписи   
+        }
+
+        private void CopyDirectory(string sourcePathToFile, string targetPathToFile)
+        {
+            var fullPathToSourceFile = CombinePathToTargetFile(currentPath, sourcePathToFile);
+
+            if (!Directory.Exists(fullPathToSourceFile))
+            {
+                throw new ArgumentException(); //TODO: Не является директорией или не существует
+            }
+
+            var fullPathToTargetFile = CombinePathToTargetFile(currentPath, targetPathToFile);
+
+            if (Path.HasExtension(fullPathToTargetFile))
+            {
+                throw new ArgumentException(); //TODO: Не верный формат target
+            }
+
+            // Directory.Cop
+        }
+
+        private void CommandDelete(string[] arguments)
+        {
+            // TODO: Разбить функцию
+            // TODO: Добавить обработку ошибок с доступом к файлу
+            // TODO: Добавить обработку ошибок с копированием не существующего файла
             var sourcePathToFile = arguments[0];
 
-            if (!string.IsNullOrEmpty(sourcePathToFile))
+            if (string.IsNullOrEmpty(sourcePathToFile))
             {
                 throw new ArgumentNullException();
             }
 
-            if (!File.Exists(sourcePathToFile))
+            var fullPathToSourceFile = CombinePathToTargetFile(currentPath, sourcePathToFile);
+
+            if (!File.Exists(fullPathToSourceFile))
             {
                 throw new AggregateException();
             }
 
-            File.Delete(sourcePathToFile);
+            File.Delete(fullPathToSourceFile);
+        }
+
+        private void DeleteFile(string[] arguments)
+        {
+        }
+
+        private void DeleteDirectory(string[] arguments)
+        {
+        }
+
+        private string CombinePathToTargetFile(string fullPathRoot, string targetPathToFile)
+        {
+            if (!Path.IsPathRooted(fullPathRoot)) // TODO: Почитать
+            {
+                throw new ArgumentException(); // TODO: Добавить описание ошибки. По всему файлу
+            }
+
+            if (Path.IsPathRooted(targetPathToFile))
+            {
+                return targetPathToFile;
+            }
+
+            return Path.Join(fullPathRoot, targetPathToFile);
         }
     }
 }

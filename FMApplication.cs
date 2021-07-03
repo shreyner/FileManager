@@ -24,6 +24,8 @@ namespace FileManager
 
         private readonly Configuration configuration;
 
+        private int currentShowLines = 0;
+
         public FMApplication()
         {
             configurationRoot = new ConfigurationBuilder()
@@ -75,6 +77,12 @@ namespace FileManager
                 case "ls":
                     CommandListDirectoryFile(arguments);
                     return;
+                case "next":
+                    CommandNextPage();
+                    break;
+                case "prev":
+                    CommandPrevPage();
+                    break;
                 case "cp":
                     CommandCopy(arguments);
                     return;
@@ -149,6 +157,7 @@ namespace FileManager
 
         private void UpdateLastVisitDirectory(string path)
         {
+            configuration.AppSettings.Settings.Remove("lastVisitDirectory");
             configuration.AppSettings.Settings.Add("lastVisitDirectory", path);
 
             configuration.Save();
@@ -181,15 +190,46 @@ namespace FileManager
 
             Console.WriteLine($"{currentPath}/");
 
-            ListDirectoryFile(currentPath, 1);
+            currentShowLines = 0;
+
+            int limit = directorySettings.limit;
+            ListDirectoryFile(path: currentPath, offset: currentShowLines, limit: ref limit);
             ShowDirectoryInformation(currentPath);
             UpdateLastVisitDirectory(currentPath);
         }
 
-        // TODO: deepLength можно вынести в конфиг
-        public void ListDirectoryFile(string path, int offset = 0, int deepLength = 2)
+        private void CommandNextPage()
         {
-            if (deepLength == 0)
+            int limit = directorySettings.limit;
+            ListDirectoryFile(path: currentPath, offset: currentShowLines, limit: ref limit);
+            ShowDirectoryInformation(currentPath);
+        }
+
+        private void CommandPrevPage()
+        {
+            if (currentShowLines - directorySettings.limit < 0)
+            {
+                return;
+            }
+
+            currentShowLines -= directorySettings.limit;
+
+
+            int limit = directorySettings.limit;
+            ListDirectoryFile(path: currentPath, offset: currentShowLines, limit: ref limit);
+            ShowDirectoryInformation(currentPath);
+        }
+
+        // TODO: deepLength можно вынести в конфиг
+        public void ListDirectoryFile(
+            string path,
+            ref int limit,
+            int offset = 0,
+            int currentDeep = 0,
+            int maxDeep = 2
+        )
+        {
+            if (maxDeep == 0 || limit == 0)
             {
                 return;
             }
@@ -200,8 +240,23 @@ namespace FileManager
             {
                 foreach (var directory in directoryInfo.EnumerateDirectories())
                 {
-                    Console.WriteLine($"{new string(' ', offset)}/{directory.Name}/");
-                    ListDirectoryFile($"{path}/{directory.Name}", offset + 1, deepLength - 1);
+                    if (offset > 0)
+                    {
+                        offset -= 1;
+                        return;
+                    }
+
+                    if (limit == 0)
+                    {
+                        break;
+                    }
+
+                    limit -= 1;
+                    currentShowLines += 1;
+
+                    Console.WriteLine($"{new string(' ', currentDeep)}/{directory.Name}/");
+                    ListDirectoryFile(path: $"{path}/{directory.Name}", currentDeep: currentDeep + 1,
+                        maxDeep: maxDeep - 1, limit: ref limit);
                 }
             }
             catch (UnauthorizedAccessException e)
@@ -210,7 +265,21 @@ namespace FileManager
 
             foreach (var fileInfo in directoryInfo.EnumerateFiles())
             {
-                Console.WriteLine($"{new string(' ', offset)}/{fileInfo.Name}");
+                if (offset > 0)
+                {
+                    offset -= 1;
+                    return;
+                }
+
+                if (limit == 0)
+                {
+                    break;
+                }
+
+                limit -= 1;
+                currentShowLines += 1;
+
+                Console.WriteLine($"{new string(' ', currentDeep)}/{fileInfo.Name}");
             }
         }
 

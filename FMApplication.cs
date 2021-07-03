@@ -20,6 +20,7 @@ namespace FileManager
         {
             while (true)
             {
+                Console.Write("> ");
                 var str = Console.ReadLine();
                 var (command, arguments) = parseStringToCommand(str);
                 execCommand(command, arguments);
@@ -63,6 +64,22 @@ namespace FileManager
                     return;
             }
         }
+
+        private void ShowDirectoryInformation(string targetDirectory)
+        {
+            var directoryInfo = new DirectoryInfo(targetDirectory);
+
+            Console.WriteLine(new string('=', 10));
+            var directorySize = DirectoryUtils.Size(targetDirectory);
+            Console.WriteLine(
+                "Path: {0}\nSize: {1:N0} byte\nCreated: {2:g}",
+                targetDirectory,
+                directorySize,
+                directoryInfo.CreationTime
+            );
+            Console.WriteLine(new string('=', 10));
+        }
+
 
         private void CommandShowFile(string[] arguments)
         {
@@ -117,6 +134,7 @@ namespace FileManager
             Console.WriteLine($"{currentPath}/");
 
             ListDirectoryFile(currentPath, 1);
+            ShowDirectoryInformation(currentPath);
         }
 
         // TODO: deepLength можно вынести в конфиг

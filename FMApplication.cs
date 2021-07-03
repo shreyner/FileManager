@@ -8,7 +8,8 @@ namespace FileManager
 {
     public class FMApplication
     {
-        private string currentPath = Path.GetFullPath(Path.Join(Environment.CurrentDirectory, "..", "..", "..", ".."));
+        // private string currentPath = Path.GetFullPath(Path.Join(Environment.CurrentDirectory, "..", "..", "..", ".."));
+        private string currentPath = Path.GetFullPath("/Users/shreyner/workspace/net/FileManager");
 
         public FMApplication()
         {
@@ -85,18 +86,24 @@ namespace FileManager
 
             currentPath = Path.GetFullPath(currentPath);
 
-            var directoryInfo = new DirectoryInfo(currentPath);
+            Console.WriteLine($"{currentPath}/");
 
-            Console.WriteLine($"Current path: {currentPath}");
+            ListDirectoryFile(currentPath, 1);
+        }
+
+        public void ListDirectoryFile(string path, int offset = 0)
+        {
+            var directoryInfo = new DirectoryInfo(path);
 
             foreach (var directory in directoryInfo.EnumerateDirectories())
             {
-                Console.WriteLine($"/{directory.Name}/");
+                Console.WriteLine($"{new string(' ', offset)}/{directory.Name}/");
+                ListDirectoryFile($"{path}/{directory.Name}", offset + 1);
             }
 
             foreach (var fileInfo in directoryInfo.EnumerateFiles())
             {
-                Console.WriteLine($"/{fileInfo.Name}");
+                Console.WriteLine($"{new string(' ', offset)}/{fileInfo.Name}");
             }
         }
 

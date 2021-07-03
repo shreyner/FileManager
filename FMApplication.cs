@@ -1,21 +1,47 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
+using Microsoft.Extensions.Configuration;
 
 
 namespace FileManager
 {
+    public class DirectorySettings
+    {
+        public int limit { get; set; }
+    }
+
     public class FMApplication
     {
         // private string currentPath = Path.GetFullPath(Path.Join(Environment.CurrentDirectory, "..", "..", "..", ".."));
         private string currentPath = Path.GetFullPath("/Users/shreyner/workspace/net/FileManager");
 
+        private readonly IConfigurationRoot configurationRoot;
+
+        private readonly DirectorySettings directorySettings;
+
+        private readonly Configuration configuration;
+
         public FMApplication()
         {
-            // TODO: Добавить инициализацию этой конфига
+            configurationRoot = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .Build();
 
-            CommandListDirectoryFile(new[] {"."});
+            directorySettings = configurationRoot.GetSection("Directory").Get<DirectorySettings>();
+
+            var roaming = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.PerUserRoaming);
+            var fileMap = new ExeConfigurationFileMap {ExeConfigFilename = roaming.FilePath};
+
+            configuration =
+                ConfigurationManager.OpenMappedExeConfiguration(fileMap, ConfigurationUserLevel.None);
+
+            var lastVisitDirectory = configuration.AppSettings.Settings["lastVisitDirectory"]?.Value ??
+                                     Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+            CommandListDirectoryFile(new[] {lastVisitDirectory});
         }
 
         public void run()
@@ -121,6 +147,13 @@ namespace FileManager
             return;
         }
 
+        private void UpdateLastVisitDirectory(string path)
+        {
+            configuration.AppSettings.Settings["lastVisitDirectory"].Value = path;
+
+            configuration.Save();
+        }
+
         private void CommandListDirectoryFile(string[] arguments)
         {
             string newPath = arguments.ElementAtOrDefault(0) ?? ".";
@@ -150,6 +183,7 @@ namespace FileManager
 
             ListDirectoryFile(currentPath, 1);
             ShowDirectoryInformation(currentPath);
+            UpdateLastVisitDirectory(currentPath);
         }
 
         // TODO: deepLength можно вынести в конфиг

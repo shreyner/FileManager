@@ -52,6 +52,9 @@ namespace FileManager
                 case "rm":
                     CommandDelete(arguments);
                     return;
+                case "file":
+                    CommandShowFile(arguments);
+                    return;
                 case "help":
                     Console.WriteLine("Call help command");
                     return;
@@ -59,6 +62,31 @@ namespace FileManager
                     Console.WriteLine($"command not found: {command}");
                     return;
             }
+        }
+
+        private void CommandShowFile(string[] arguments)
+        {
+            var pathToTargetFile = arguments[0];
+
+            if (string.IsNullOrEmpty(pathToTargetFile))
+            {
+                throw new ArgumentException();
+            }
+
+            var fullPathToTargetFile = CombinePathToTargetFile(currentPath, pathToTargetFile);
+
+            if (!Path.HasExtension(fullPathToTargetFile))
+            {
+                throw new ArgumentException();
+            }
+
+            if (!File.Exists(fullPathToTargetFile))
+            {
+                throw new ArgumentException(); // TODO: Такой файл не существует
+            }
+
+            Console.WriteLine(File.ReadAllText(fullPathToTargetFile));
+            return;
         }
 
         private void CommandListDirectoryFile(string[] arguments)

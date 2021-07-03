@@ -119,14 +119,20 @@ namespace FileManager
             ListDirectoryFile(currentPath, 1);
         }
 
-        public void ListDirectoryFile(string path, int offset = 0)
+        // TODO: deepLength можно вынести в конфиг
+        public void ListDirectoryFile(string path, int offset = 0, int deepLength = 2)
         {
+            if (deepLength == 0)
+            {
+                return;
+            }
+
             var directoryInfo = new DirectoryInfo(path);
 
             foreach (var directory in directoryInfo.EnumerateDirectories())
             {
                 Console.WriteLine($"{new string(' ', offset)}/{directory.Name}/");
-                ListDirectoryFile($"{path}/{directory.Name}", offset + 1);
+                ListDirectoryFile($"{path}/{directory.Name}", offset + 1, deepLength - 1);
             }
 
             foreach (var fileInfo in directoryInfo.EnumerateFiles())

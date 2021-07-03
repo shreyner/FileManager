@@ -231,7 +231,9 @@ namespace FileManager
             // TODO: Разбить функцию
             // TODO: Добавить обработку ошибок с доступом к файлу
             // TODO: Добавить обработку ошибок с копированием не существующего файла
-            var sourcePathToFile = arguments[0];
+            var sourcePathToFile = arguments.ElementAtOrDefault(0);
+            var isDeleteDirectory = arguments.ElementAtOrDefault(1) == "-p";
+            var isDeleteWithFile = arguments.ElementAtOrDefault(2) == "-f";
 
             if (string.IsNullOrEmpty(sourcePathToFile))
             {
@@ -240,6 +242,24 @@ namespace FileManager
 
             var fullPathToSourceFile = CombinePathToTargetFile(currentPath, sourcePathToFile);
 
+            if (isDeleteDirectory)
+            {
+                DeleteDirectory(fullPathToSourceFile, isDeleteWithFile);
+                return;
+            }
+
+            if (!Path.HasExtension(fullPathToSourceFile) && Directory.Exists(fullPathToSourceFile))
+            {
+                Console.WriteLine("Укажите -p. Это похоже на папку");
+                throw new ArgumentException(); // TODO: Добавить нормальную ошибку
+            }
+
+            DeleteFile(fullPathToSourceFile);
+            return;
+        }
+
+        private void DeleteFile(string fullPathToSourceFile)
+        {
             if (!File.Exists(fullPathToSourceFile))
             {
                 throw new AggregateException();
@@ -248,12 +268,33 @@ namespace FileManager
             File.Delete(fullPathToSourceFile);
         }
 
-        private void DeleteFile(string[] arguments)
+        private void DeleteDirectory(string fullPathToSourceFile, bool deleteWithFile)
         {
-        }
+            if (!Directory.Exists(fullPathToSourceFile))
+            {
+                throw new ArgumentException(); // TODO: Такой папки не существует
+            }
 
-        private void DeleteDirectory(string[] arguments)
-        {
+            if (deleteWithFile)
+            {
+                DirectoryUtils.DeleteWithFile(fullPathToSourceFile);
+                return;
+            }
+
+            try
+            {
+                Directory.Delete(fullPathToSourceFile);
+            }
+            catch (IOException e)
+            {
+                if (e.Message.Contains("Directory not empty"))
+                {
+                    Console.WriteLine("Папка не пустая. Для удаления укажите флаг -f");
+                    return;
+                }
+
+                throw;
+            }
         }
 
         private string CombinePathToTargetFile(string fullPathRoot, string targetPathToFile)

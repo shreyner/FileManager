@@ -66,5 +66,33 @@ namespace FileManager
                 );
             }
         }
+
+        public static void DeleteWithFile(string fullPathSourceDirectory)
+        {
+            if (!Path.IsPathRooted(fullPathSourceDirectory))
+            {
+                throw new ArgumentException(); // TODO: Должен быть полный путь
+            }
+
+            var directoryInfo = new DirectoryInfo(fullPathSourceDirectory);
+
+            if (!directoryInfo.Exists)
+            {
+                throw new ArgumentException(); // TODO: Такой папки не существует
+            }
+
+            foreach (var fileInfo in directoryInfo.GetFiles())
+            {
+                fileInfo.Delete();
+            }
+
+            foreach (var subDirectoryInfo in directoryInfo.GetDirectories())
+            {
+                DeleteWithFile(subDirectoryInfo.FullName);
+                subDirectoryInfo.Delete();
+            }
+            
+            directoryInfo.Delete();
+        }
     }
 }

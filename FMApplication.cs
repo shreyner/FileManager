@@ -56,7 +56,7 @@ namespace FileManager
                     CommandDelete(arguments);
                     return;
                 case "file":
-                    CommandShowFile(arguments);
+                    CommandShowFileInfo(arguments);
                     return;
                 case "help":
                     Console.WriteLine("Call help command");
@@ -72,18 +72,23 @@ namespace FileManager
             var directoryInfo = new DirectoryInfo(targetDirectory);
 
             Console.WriteLine(new string('=', 10));
-            var directorySize = DirectoryUtils.Size(targetDirectory);
+            var directoryUtilsInfoSize = DirectoryUtils.Info(targetDirectory);
+
+            Console.WriteLine("Information about directory: {0}", directoryInfo.Name);
             Console.WriteLine(
-                "Path: {0}\nSize: {1:N0} byte\nCreated: {2:g}",
-                targetDirectory,
-                directorySize,
-                directoryInfo.CreationTime
+                "Path: {0}\nSize: {1:N0} byte, Files: {2:N0}\nCreated: {3:g}, LastAccess: {4:g}, LastWrite: {5:g}",
+                directoryInfo.FullName,
+                directoryUtilsInfoSize.Size,
+                directoryUtilsInfoSize.Files,
+                directoryInfo.CreationTime,
+                directoryInfo.LastAccessTime,
+                directoryInfo.LastWriteTime
             );
             Console.WriteLine(new string('=', 10));
         }
 
 
-        private void CommandShowFile(string[] arguments)
+        private void CommandShowFileInfo(string[] arguments)
         {
             var pathToTargetFile = arguments[0];
 
@@ -104,13 +109,21 @@ namespace FileManager
                 throw new ArgumentException(); // TODO: Такой файл не существует
             }
 
-            Console.WriteLine(File.ReadAllText(fullPathToTargetFile));
+            var fileInfo = new FileInfo(fullPathToTargetFile);
+
+            Console.WriteLine(new string('=', 10));
+            Console.WriteLine("Information about file: {0}", fileInfo.Name);
+            Console.WriteLine(
+                "Path: {0}\nName: {1}, ext: {2}\nSize: {3:N0}\nCreated: {4:g}, LastAccess: {5:g}, LastWrite: {6:g}",
+                fileInfo.FullName, fileInfo.Name, fileInfo.Extension, fileInfo.Length, fileInfo.CreationTime,
+                fileInfo.LastAccessTime, fileInfo.LastWriteTime);
+            Console.WriteLine(new string('=', 10));
             return;
         }
 
         private void CommandListDirectoryFile(string[] arguments)
         {
-            string newPath = arguments[0];
+            string newPath = arguments.ElementAtOrDefault(0) ?? ".";
 
             if (string.IsNullOrEmpty(newPath))
             {

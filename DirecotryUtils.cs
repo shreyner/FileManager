@@ -3,9 +3,13 @@ using System.IO;
 
 namespace FileManager
 {
+    public record DirectoryUtilsInfo(long Size, long Files)
+    {
+    }
+
     public class DirectoryUtils
     {
-        public static long Size(string pathToDirectory)
+        public static DirectoryUtilsInfo Info(string pathToDirectory)
         {
             if (!Path.IsPathRooted(pathToDirectory))
             {
@@ -20,13 +24,15 @@ namespace FileManager
             }
 
             long size = 0;
+            long files = 0;
 
             foreach (var fileInfo in directoryInfo.GetFiles("*", SearchOption.AllDirectories))
             {
                 size += fileInfo.Length;
+                files += 1;
             }
 
-            return size;
+            return new DirectoryUtilsInfo(Size: size, Files: files);
         }
 
         public static void Copy(string pathToSourceDirectory, string pathToTargetDirectory)
@@ -91,7 +97,7 @@ namespace FileManager
                 DeleteWithFile(subDirectoryInfo.FullName);
                 subDirectoryInfo.Delete();
             }
-            
+
             directoryInfo.Delete();
         }
     }

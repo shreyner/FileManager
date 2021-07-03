@@ -26,10 +26,17 @@ namespace FileManager
             long size = 0;
             long files = 0;
 
-            foreach (var fileInfo in directoryInfo.GetFiles("*", SearchOption.AllDirectories))
+            try
             {
-                size += fileInfo.Length;
-                files += 1;
+                foreach (var fileInfo in directoryInfo.GetFiles("*", SearchOption.AllDirectories))
+                {
+                    size += fileInfo.Length;
+                    files += 1;
+                }
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                return new DirectoryUtilsInfo(Size: 0, Files: 0);
             }
 
             return new DirectoryUtilsInfo(Size: size, Files: files);

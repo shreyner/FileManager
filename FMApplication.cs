@@ -104,8 +104,8 @@ namespace FileManager
             Console.WriteLine(
                 "Path: {0}\nSize: {1:N0} byte, Files: {2:N0}\nCreated: {3:g}, LastAccess: {4:g}, LastWrite: {5:g}",
                 directoryInfo.FullName,
-                directoryUtilsInfoSize.Size,
-                directoryUtilsInfoSize.Files,
+                directoryUtilsInfoSize.Size == 0 ? "Unknown" : directoryUtilsInfoSize.Size,
+                directoryUtilsInfoSize.Files == 0 ? "Unknown" : directoryUtilsInfoSize.Files,
                 directoryInfo.CreationTime,
                 directoryInfo.LastAccessTime,
                 directoryInfo.LastWriteTime
@@ -149,7 +149,7 @@ namespace FileManager
 
         private void UpdateLastVisitDirectory(string path)
         {
-            configuration.AppSettings.Settings["lastVisitDirectory"].Value = path;
+            configuration.AppSettings.Settings.Add("lastVisitDirectory", path);
 
             configuration.Save();
         }
@@ -196,10 +196,16 @@ namespace FileManager
 
             var directoryInfo = new DirectoryInfo(path);
 
-            foreach (var directory in directoryInfo.EnumerateDirectories())
+            try
             {
-                Console.WriteLine($"{new string(' ', offset)}/{directory.Name}/");
-                ListDirectoryFile($"{path}/{directory.Name}", offset + 1, deepLength - 1);
+                foreach (var directory in directoryInfo.EnumerateDirectories())
+                {
+                    Console.WriteLine($"{new string(' ', offset)}/{directory.Name}/");
+                    ListDirectoryFile($"{path}/{directory.Name}", offset + 1, deepLength - 1);
+                }
+            }
+            catch (UnauthorizedAccessException e)
+            {
             }
 
             foreach (var fileInfo in directoryInfo.EnumerateFiles())

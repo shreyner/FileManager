@@ -14,6 +14,8 @@ namespace FileManager
         public FMApplication()
         {
             // TODO: Добавить инициализацию этой конфига
+
+            CommandListDirectoryFile(new[] {"."});
         }
 
         public void run()
@@ -163,9 +165,9 @@ namespace FileManager
         {
             // TODO: Добавить обработку ошибок с доступом к файлу
             // TODO: Добавить обработку ошибок с копированием не существующего файла
-            var sourcePathToFile = arguments[0];
-            var targetPathToFile = arguments[1];
-            var isCopyDirectory = arguments[2] == "-p";
+            var sourcePathToFile = arguments.ElementAtOrDefault(0);
+            var targetPathToFile = arguments.ElementAtOrDefault(1);
+            var isCopyDirectory = arguments.ElementAtOrDefault(2) == "-p";
 
             if (string.IsNullOrEmpty(sourcePathToFile))
             {
@@ -221,12 +223,7 @@ namespace FileManager
 
             var fullPathToTargetFile = CombinePathToTargetFile(currentPath, targetPathToFile);
 
-            if (Path.HasExtension(fullPathToTargetFile))
-            {
-                throw new ArgumentException(); //TODO: Не верный формат target
-            }
-
-            // Directory.Cop
+            DirectoryUtils.Copy(fullPathToSourceFile, fullPathToTargetFile);
         }
 
         private void CommandDelete(string[] arguments)

@@ -262,23 +262,16 @@ namespace FileManager
                 {
                     totalCounter += 1;
 
-                    if (offset == 0 && limit != 0)
+                    if (offset == 0 && limit > 0)
                     {
+                        limit -= 1;
                         Console.WriteLine($"{new string(' ', currentDeep * 2)}/{directory.Name}/");
                     }
 
                     if (offset > 0)
                     {
                         offset -= 1;
-                        continue;
                     }
-
-                    if (limit == 0)
-                    {
-                        continue;
-                    }
-
-                    limit -= 1;
 
                     ListDirectoryFile(
                         path: $"{path}/{directory.Name}",
@@ -298,23 +291,16 @@ namespace FileManager
             {
                 totalCounter += 1;
 
-                if (offset == 0 && limit != 0)
+                if (offset == 0 && limit > 0)
                 {
+                    limit -= 1;
                     Console.WriteLine($"{new string(' ', currentDeep)}/{fileInfo.Name}");
                 }
 
                 if (offset > 0)
                 {
                     offset -= 1;
-                    continue;
                 }
-
-                if (limit == 0)
-                {
-                    continue;
-                }
-
-                limit -= 1;
             }
         }
 

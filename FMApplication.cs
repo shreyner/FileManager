@@ -15,8 +15,7 @@ namespace FileManager
 
     public class FMApplication
     {
-        // private string currentPath = Path.GetFullPath(Path.Join(Environment.CurrentDirectory, "..", "..", "..", ".."));
-        private string currentPath = Path.GetFullPath("/Users/shreyner/workspace/net/FileManager");
+        private string currentPath;
 
         private readonly IConfigurationRoot configurationRoot;
 
@@ -24,7 +23,8 @@ namespace FileManager
 
         private readonly Configuration configuration;
 
-        private int currentShowLines = 0;
+        private long currentShowLines = 0;
+        private long totalDirectoryAndFiles = 0;
 
         public FMApplication()
         {
@@ -110,8 +110,10 @@ namespace FileManager
 
             Console.WriteLine("Information about directory: {0}", directoryInfo.Name);
             Console.WriteLine(
-                "Path: {0}\nSize: {1:N0} byte, Files: {2:N0}\nCreated: {3:g}, LastAccess: {4:g}, LastWrite: {5:g}",
+                "Path: {0}\nCurrentPage: {1}, TotalPage: {2}\nSize: {3:N0} byte, Files: {4:N0}\nCreated: {5:g}, LastAccess: {6:g}, LastWrite: {7:g}",
                 directoryInfo.FullName,
+                (currentShowLines / directorySettings.limit) + 1,
+                totalDirectoryAndFiles / directorySettings.limit,
                 directoryUtilsInfoSize.Size == 0 ? "Unknown" : directoryUtilsInfoSize.Size,
                 directoryUtilsInfoSize.Files == 0 ? "Unknown" : directoryUtilsInfoSize.Files,
                 directoryInfo.CreationTime,
@@ -192,31 +194,48 @@ namespace FileManager
 
             currentShowLines = 0;
 
+            long offset = currentShowLines;
             int limit = directorySettings.limit;
-            ListDirectoryFile(path: currentPath, offset: currentShowLines, limit: ref limit);
+            totalDirectoryAndFiles = 0;
+
+            ListDirectoryFile(path: currentPath, offset: ref offset, limit: ref limit,
+                totalCounter: ref totalDirectoryAndFiles);
             ShowDirectoryInformation(currentPath);
             UpdateLastVisitDirectory(currentPath);
         }
 
         private void CommandNextPage()
         {
+            if (totalDirectoryAndFiles < currentShowLines + directorySettings.limit)
+            {
+                Console.WriteLine("This last page.");
+                return;
+            }
+
+            currentShowLines += directorySettings.limit;
+            long offset = currentShowLines;
             int limit = directorySettings.limit;
-            ListDirectoryFile(path: currentPath, offset: currentShowLines, limit: ref limit);
+            long totalCounter = 0;
+
+            ListDirectoryFile(path: currentPath, offset: ref offset, limit: ref limit, totalCounter: ref totalCounter);
             ShowDirectoryInformation(currentPath);
         }
 
         private void CommandPrevPage()
         {
-            if (currentShowLines - directorySettings.limit < 0)
+            if (currentShowLines <= 0)
             {
+                Console.WriteLine("Последняя страница");
                 return;
             }
 
             currentShowLines -= directorySettings.limit;
 
-
+            long offset = currentShowLines;
             int limit = directorySettings.limit;
-            ListDirectoryFile(path: currentPath, offset: currentShowLines, limit: ref limit);
+            long totalCounter = 0;
+
+            ListDirectoryFile(path: currentPath, offset: ref offset, limit: ref limit, totalCounter: ref totalCounter);
             ShowDirectoryInformation(currentPath);
         }
 
@@ -224,12 +243,13 @@ namespace FileManager
         public void ListDirectoryFile(
             string path,
             ref int limit,
-            int offset = 0,
+            ref long offset,
+            ref long totalCounter,
             int currentDeep = 0,
             int maxDeep = 2
         )
         {
-            if (maxDeep == 0 || limit == 0)
+            if (maxDeep == 0)
             {
                 return;
             }
@@ -240,23 +260,34 @@ namespace FileManager
             {
                 foreach (var directory in directoryInfo.EnumerateDirectories())
                 {
+                    totalCounter += 1;
+
+                    if (offset == 0 && limit != 0)
+                    {
+                        Console.WriteLine($"{new string(' ', currentDeep * 2)}/{directory.Name}/");
+                    }
+
                     if (offset > 0)
                     {
                         offset -= 1;
-                        return;
+                        continue;
                     }
 
                     if (limit == 0)
                     {
-                        break;
+                        continue;
                     }
 
                     limit -= 1;
-                    currentShowLines += 1;
 
-                    Console.WriteLine($"{new string(' ', currentDeep)}/{directory.Name}/");
-                    ListDirectoryFile(path: $"{path}/{directory.Name}", currentDeep: currentDeep + 1,
-                        maxDeep: maxDeep - 1, limit: ref limit);
+                    ListDirectoryFile(
+                        path: $"{path}/{directory.Name}",
+                        currentDeep: currentDeep + 1,
+                        maxDeep: maxDeep - 1,
+                        offset: ref offset,
+                        limit: ref limit,
+                        totalCounter: ref totalCounter
+                    );
                 }
             }
             catch (UnauthorizedAccessException e)
@@ -265,21 +296,25 @@ namespace FileManager
 
             foreach (var fileInfo in directoryInfo.EnumerateFiles())
             {
+                totalCounter += 1;
+
+                if (offset == 0 && limit != 0)
+                {
+                    Console.WriteLine($"{new string(' ', currentDeep)}/{fileInfo.Name}");
+                }
+
                 if (offset > 0)
                 {
                     offset -= 1;
-                    return;
+                    continue;
                 }
 
                 if (limit == 0)
                 {
-                    break;
+                    continue;
                 }
 
                 limit -= 1;
-                currentShowLines += 1;
-
-                Console.WriteLine($"{new string(' ', currentDeep)}/{fileInfo.Name}");
             }
         }
 

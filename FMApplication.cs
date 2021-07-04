@@ -318,8 +318,6 @@ namespace FileManager
 
         private void CommandCopy(string[] arguments)
         {
-            // TODO: Добавить обработку ошибок с доступом к файлу
-            // TODO: Добавить обработку ошибок с копированием не существующего файла
             var pathToSourceFile = arguments.ElementAtOrDefault(0);
             var pathToDistFile = arguments.ElementAtOrDefault(1);
             var isCopyDirectory = arguments.ElementAtOrDefault(2) == "-p";
@@ -390,8 +388,6 @@ namespace FileManager
 
         private void CommandDelete(string[] arguments)
         {
-            // TODO: Добавить обработку ошибок с доступом к файлу
-            // TODO: Добавить обработку ошибок с копированием не существующего файла
             var sourcePathToFile = arguments.ElementAtOrDefault(0);
             var isDeleteDirectory = arguments.ElementAtOrDefault(1) == "-p";
             var isDeleteWithFile = arguments.ElementAtOrDefault(2) == "-f";

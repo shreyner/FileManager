@@ -15,7 +15,7 @@ namespace FileManager
 
     public class FMApplication
     {
-        private string currentPath;
+        private string currentPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
         private readonly IConfigurationRoot configurationRoot;
 
@@ -71,33 +71,44 @@ namespace FileManager
 
         private void execCommand(string command, string[] arguments)
         {
-            switch (command)
+            try
             {
-                case "cd":
-                case "ls":
-                    CommandListDirectoryFile(arguments);
-                    return;
-                case "next":
-                    CommandNextPage();
-                    break;
-                case "prev":
-                    CommandPrevPage();
-                    break;
-                case "cp":
-                    CommandCopy(arguments);
-                    return;
-                case "rm":
-                    CommandDelete(arguments);
-                    return;
-                case "file":
-                    CommandShowFileInfo(arguments);
-                    return;
-                case "help":
-                    Console.WriteLine("Call help command");
-                    return;
-                default:
-                    Console.WriteLine($"command not found: {command}");
-                    return;
+                switch (command)
+                {
+                    case "cd":
+                    case "ls":
+                        CommandListDirectoryFile(arguments);
+                        return;
+                    case "next":
+                        CommandNextPage();
+                        break;
+                    case "prev":
+                        CommandPrevPage();
+                        break;
+                    case "cp":
+                        CommandCopy(arguments);
+                        return;
+                    case "rm":
+                        CommandDelete(arguments);
+                        return;
+                    case "file":
+                        CommandShowFileInfo(arguments);
+                        return;
+                    case "help":
+                        Console.WriteLine("Call help command");
+                        return;
+                    default:
+                        Console.WriteLine($"command not found: {command}");
+                        return;
+                }
+            }
+            catch (ArgumentNullException e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            catch (ArgumentException e)
+            {
+                Console.WriteLine(e.Message);
             }
         }
 
@@ -113,7 +124,7 @@ namespace FileManager
                 "Path: {0}\nCurrentPage: {1}, TotalPage: {2}\nSize: {3:N0} byte, Files: {4:N0}\nCreated: {5:g}, LastAccess: {6:g}, LastWrite: {7:g}",
                 directoryInfo.FullName,
                 (currentShowLines / directorySettings.limit) + 1,
-                totalDirectoryAndFiles / directorySettings.limit,
+                totalDirectoryAndFiles / directorySettings.limit + 1, // FIXME: Change type on float and around up
                 directoryUtilsInfoSize.Size == 0 ? "Unknown" : directoryUtilsInfoSize.Size,
                 directoryUtilsInfoSize.Files == 0 ? "Unknown" : directoryUtilsInfoSize.Files,
                 directoryInfo.CreationTime,
@@ -137,12 +148,12 @@ namespace FileManager
 
             if (!Path.HasExtension(fullPathToTargetFile))
             {
-                throw new ArgumentException();
+                throw new ArgumentException($"{fullPathToTargetFile} isn't has extension");
             }
 
             if (!File.Exists(fullPathToTargetFile))
             {
-                throw new ArgumentException(); // TODO: Такой файл не существует
+                throw new ArgumentException($"{fullPathToTargetFile} isn't has extension");
             }
 
             var fileInfo = new FileInfo(fullPathToTargetFile);
@@ -171,37 +182,31 @@ namespace FileManager
 
             if (string.IsNullOrEmpty(newPath))
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException("Path", "Path is not empty");
             }
 
-            if (Path.IsPathRooted(newPath))
+
+            try
             {
-                currentPath = newPath;
+                currentPath = CombinePathToTargetFile(currentPath, newPath);
+                currentPath = Path.GetFullPath(currentPath);
+                Console.WriteLine($"{currentPath}/");
+
+                currentShowLines = 0;
+
+                long offset = currentShowLines;
+                int limit = directorySettings.limit;
+                totalDirectoryAndFiles = 0;
+
+                ListDirectoryFile(path: currentPath, offset: ref offset, limit: ref limit,
+                    totalCounter: ref totalDirectoryAndFiles);
+                ShowDirectoryInformation(currentPath);
+                UpdateLastVisitDirectory(currentPath);
             }
-            else if (Directory.Exists(Path.Join(currentPath, newPath)))
+            catch (ArgumentException error)
             {
-                currentPath = Path.Join(currentPath, newPath);
+                Console.WriteLine(error);
             }
-            else
-            {
-                // Не валидный путь
-                throw new ArgumentException();
-            }
-
-            currentPath = Path.GetFullPath(currentPath);
-
-            Console.WriteLine($"{currentPath}/");
-
-            currentShowLines = 0;
-
-            long offset = currentShowLines;
-            int limit = directorySettings.limit;
-            totalDirectoryAndFiles = 0;
-
-            ListDirectoryFile(path: currentPath, offset: ref offset, limit: ref limit,
-                totalCounter: ref totalDirectoryAndFiles);
-            ShowDirectoryInformation(currentPath);
-            UpdateLastVisitDirectory(currentPath);
         }
 
         private void CommandNextPage()
@@ -283,24 +288,31 @@ namespace FileManager
                     );
                 }
             }
-            catch (UnauthorizedAccessException e)
+            catch (UnauthorizedAccessException error)
             {
             }
 
-            foreach (var fileInfo in directoryInfo.EnumerateFiles())
+            try
             {
-                totalCounter += 1;
-
-                if (offset == 0 && limit > 0)
+                foreach (var fileInfo in directoryInfo.EnumerateFiles())
                 {
-                    limit -= 1;
-                    Console.WriteLine($"{new string(' ', currentDeep)}/{fileInfo.Name}");
-                }
+                    totalCounter += 1;
 
-                if (offset > 0)
-                {
-                    offset -= 1;
+                    if (offset == 0 && limit > 0)
+                    {
+                        limit -= 1;
+                        Console.WriteLine($"{new string(' ', currentDeep)}/{fileInfo.Name}");
+                    }
+
+                    if (offset > 0)
+                    {
+                        offset -= 1;
+                    }
                 }
+            }
+            catch (UnauthorizedAccessException error)
+            {
+                Console.WriteLine(error.Message);
             }
         }
 
@@ -308,27 +320,27 @@ namespace FileManager
         {
             // TODO: Добавить обработку ошибок с доступом к файлу
             // TODO: Добавить обработку ошибок с копированием не существующего файла
-            var sourcePathToFile = arguments.ElementAtOrDefault(0);
-            var targetPathToFile = arguments.ElementAtOrDefault(1);
+            var pathToSourceFile = arguments.ElementAtOrDefault(0);
+            var pathToDistFile = arguments.ElementAtOrDefault(1);
             var isCopyDirectory = arguments.ElementAtOrDefault(2) == "-p";
 
-            if (string.IsNullOrEmpty(sourcePathToFile))
+            if (string.IsNullOrEmpty(pathToSourceFile))
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException(nameof(pathToSourceFile), "Path to source is not empty");
             }
 
-            if (string.IsNullOrEmpty(targetPathToFile))
+            if (string.IsNullOrEmpty(pathToDistFile))
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException(nameof(pathToDistFile), "Path to dist is not empty");
             }
 
             if (isCopyDirectory)
             {
-                CopyDirectory(sourcePathToFile, targetPathToFile);
+                CopyDirectory(pathToSourceFile, pathToDistFile);
                 return;
             }
 
-            CopyFile(sourcePathToFile, targetPathToFile);
+            CopyFile(pathToSourceFile, pathToDistFile);
         }
 
         private void CopyFile(string sourcePathToFile, string targetPathToFile)
@@ -337,22 +349,29 @@ namespace FileManager
 
             if (Directory.Exists(fullPathToSourceFile))
             {
-                throw new ArgumentException("Это не файл а дерриктория");
+                throw new ArgumentException("It's not file. It's a Directory");
             }
 
             if (!File.Exists(fullPathToSourceFile))
             {
-                throw new ArgumentException(); //TODO: Такого файла нету
+                throw new ArgumentException($"{fullPathToSourceFile} doesn't exist");
             }
 
             var fullPathToTargetFile = CombinePathToTargetFile(currentPath, targetPathToFile);
 
             if (!Path.HasExtension(fullPathToTargetFile))
             {
-                throw new ArgumentException(); //TODO: Файл не имеет расширения
+                throw new ArgumentException($"{fullPathToTargetFile} isn't a file");
             }
 
-            File.Copy(fullPathToSourceFile, fullPathToTargetFile); // Добавить флаг forse для перезаписи   
+            try
+            {
+                File.Copy(fullPathToSourceFile, fullPathToTargetFile); // TODO: Добавить флаг для перезаписи
+            }
+            catch (UnauthorizedAccessException error)
+            {
+                Console.WriteLine(error.Message);
+            }
         }
 
         private void CopyDirectory(string sourcePathToFile, string targetPathToFile)
@@ -361,7 +380,7 @@ namespace FileManager
 
             if (!Directory.Exists(fullPathToSourceFile))
             {
-                throw new ArgumentException(); //TODO: Не является директорией или не существует
+                throw new ArgumentException("Path to source directory is not exist");
             }
 
             var fullPathToTargetFile = CombinePathToTargetFile(currentPath, targetPathToFile);
@@ -371,7 +390,6 @@ namespace FileManager
 
         private void CommandDelete(string[] arguments)
         {
-            // TODO: Разбить функцию
             // TODO: Добавить обработку ошибок с доступом к файлу
             // TODO: Добавить обработку ошибок с копированием не существующего файла
             var sourcePathToFile = arguments.ElementAtOrDefault(0);
@@ -393,8 +411,7 @@ namespace FileManager
 
             if (!Path.HasExtension(fullPathToSourceFile) && Directory.Exists(fullPathToSourceFile))
             {
-                Console.WriteLine("Укажите -p. Это похоже на папку");
-                throw new ArgumentException(); // TODO: Добавить нормальную ошибку
+                throw new ArgumentException("You must set -p for delete Directory");
             }
 
             DeleteFile(fullPathToSourceFile);
@@ -405,7 +422,8 @@ namespace FileManager
         {
             if (!File.Exists(fullPathToSourceFile))
             {
-                throw new AggregateException();
+                throw new ArgumentException($"{nameof(fullPathToSourceFile)} must is a full path",
+                    nameof(fullPathToSourceFile));
             }
 
             File.Delete(fullPathToSourceFile);
@@ -415,7 +433,7 @@ namespace FileManager
         {
             if (!Directory.Exists(fullPathToSourceFile))
             {
-                throw new ArgumentException(); // TODO: Такой папки не существует
+                throw new ArgumentException($"{fullPathToSourceFile} doesn't exist");
             }
 
             if (deleteWithFile)
@@ -440,11 +458,11 @@ namespace FileManager
             }
         }
 
-        private string CombinePathToTargetFile(string fullPathRoot, string targetPathToFile)
+        private string CombinePathToTargetFile(string pathRoot, string targetPathToFile)
         {
-            if (!Path.IsPathRooted(fullPathRoot)) // TODO: Почитать
+            if (!Path.IsPathRooted(pathRoot))
             {
-                throw new ArgumentException(); // TODO: Добавить описание ошибки. По всему файлу
+                throw new ArgumentException($"{nameof(pathRoot)} is not root path", nameof(pathRoot));
             }
 
             if (Path.IsPathRooted(targetPathToFile))
@@ -452,7 +470,7 @@ namespace FileManager
                 return targetPathToFile;
             }
 
-            return Path.Join(fullPathRoot, targetPathToFile);
+            return Path.Join(pathRoot, targetPathToFile);
         }
     }
 }

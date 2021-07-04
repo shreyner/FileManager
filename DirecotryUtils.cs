@@ -13,14 +13,15 @@ namespace FileManager
         {
             if (!Path.IsPathRooted(pathToDirectory))
             {
-                throw new ArgumentException(); // Должен быть полный путь
+                throw new ArgumentException($"{nameof(pathToDirectory)} must is a full path",
+                    nameof(pathToDirectory));
             }
 
             var directoryInfo = new DirectoryInfo(pathToDirectory);
 
             if (!directoryInfo.Exists)
             {
-                throw new ArgumentException(); // Такой папки не существует
+                throw new ArgumentException($"{directoryInfo.FullName} doesn't exist");
             }
 
             long size = 0;
@@ -42,40 +43,42 @@ namespace FileManager
             return new DirectoryUtilsInfo(Size: size, Files: files);
         }
 
-        public static void Copy(string pathToSourceDirectory, string pathToTargetDirectory)
+        public static void Copy(string pathToSourceDirectory, string pathToDistDirectory)
         {
             if (!Path.IsPathRooted(pathToSourceDirectory))
             {
-                throw new ArgumentException(); // TODO: Должен быть полный путь
+                throw new ArgumentException($"{nameof(pathToSourceDirectory)} must is a full path",
+                    nameof(pathToSourceDirectory));
             }
 
-            if (!Path.IsPathRooted(pathToTargetDirectory))
+            if (!Path.IsPathRooted(pathToDistDirectory))
             {
-                throw new ArgumentException(); // TODO: Должен быть полный путь
+                throw new ArgumentException($"{nameof(pathToDistDirectory)} must is a full path",
+                    nameof(pathToDistDirectory));
             }
 
             var directoryInfo = new DirectoryInfo(pathToSourceDirectory);
 
             if (!directoryInfo.Exists)
             {
-                throw new ArgumentException(); // TODO: Такой папки не существует
+                throw new ArgumentException($"{directoryInfo.FullName} doesn't exist");
             }
 
-            if (!Directory.Exists(pathToTargetDirectory))
+            if (!Directory.Exists(pathToDistDirectory))
             {
-                Directory.CreateDirectory(pathToTargetDirectory);
+                Directory.CreateDirectory(pathToDistDirectory);
             }
 
             foreach (var fileInfo in directoryInfo.GetFiles())
             {
-                fileInfo.CopyTo(Path.Join(pathToTargetDirectory, fileInfo.Name));
+                fileInfo.CopyTo(Path.Join(pathToDistDirectory, fileInfo.Name));
             }
 
             foreach (var subDirectoryInfo in directoryInfo.GetDirectories())
             {
                 DirectoryUtils.Copy(
                     subDirectoryInfo.FullName,
-                    Path.Join(pathToTargetDirectory, subDirectoryInfo.Name)
+                    Path.Join(pathToDistDirectory, subDirectoryInfo.Name)
                 );
             }
         }
@@ -84,14 +87,15 @@ namespace FileManager
         {
             if (!Path.IsPathRooted(fullPathSourceDirectory))
             {
-                throw new ArgumentException(); // TODO: Должен быть полный путь
+                throw new ArgumentException($"{nameof(fullPathSourceDirectory)} must is a full path",
+                    nameof(fullPathSourceDirectory));
             }
 
             var directoryInfo = new DirectoryInfo(fullPathSourceDirectory);
 
             if (!directoryInfo.Exists)
             {
-                throw new ArgumentException(); // TODO: Такой папки не существует
+                throw new ArgumentException($"{directoryInfo.FullName} doesn't exist");
             }
 
             foreach (var fileInfo in directoryInfo.GetFiles())
